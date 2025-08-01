@@ -1,63 +1,83 @@
-from fastapi import FastAPI, Response 
-import requests 
-from datetime import datetime 
+from fastapi import FastAPI, Response
+import requests
+from datetime import datetime
+from xml.sax.saxutils import escape
 
 app = FastAPI()
 
-API_KEY = "2e8ac43f3a1290868e551e0cffadf135"  # Substitua pela sua chave do OpenWeatherMap CITIES = [ ("Itamaraju", -17.0401, -39.5389), ("Prado", -17.3366, -39.2226), ("Teixeira de Freitas", -17.5399, -39.7422), ("Alcobaça", -17.5194, -39.2036), ("Itabela", -16.5732, -39.5593), ("Itabatã", -18.0001, -39.8489), ]
+# Substitua pela sua chave da OpenWeatherMap
+API_KEY = "2e8ac43f3a1290868e551e0cffadf135"
 
-DIRECOES = ["Norte", "NNE", "Nordeste", "ENE", "Leste", "ESE", "Sudeste", "SSE", "Sul", "SSO", "Sudoeste", "OSO", "Oeste", "ONO", "Noroeste", "NNO"]
+# Direções do vento por graus
+DIRECOES = ["Norte", "NNE", "Nordeste", "ENE", "Leste", "ESE", "Sudeste", "SSE",
+            "Sul", "SSO", "Sudoeste", "OSO", "Oeste", "ONO", "Noroeste", "NNO"]
 
-def direcao_vento(deg): idx = int((deg + 11.25) / 22.5) % 16 return DIRECOES[idx]
+# Lista de cidades com nome e coordenadas
+CITIES = [
+    ("Itamaraju", -17.0404, -39.5389),
+    ("Prado", -17.3400, -39.2200),
+    ("Teixeira de Freitas", -17.5392, -39.7400),
+    ("Alcobaça", -17.5193, -39.2036),
+    ("Itabela", -16.5732, -39.5592),
+    ("Itabatã", -18.5712, -39.5478)
+]
 
-@app.get("/clima") def clima_rss(): items = [] for city, lat, lon in CITIES: url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br" r = requests.get(url) if r.status_code != 200: continue
+def direcao_vento(deg):
+    idx = int((deg + 11.25) / 22.5) % 16
+    return DIRECOES[idx]
 
-data = r.json()
-    now = datetime.utcnow()
-    last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
-    pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+@app.get("/clima")
+def clima_rss():
+    items = []
+    for city, lat, lon in CITIES:
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&lang=pt_br&appid={API_KEY}"
+        r = requests.get(url)
+        data = r.json()
 
-    temp = round(data['main']['temp'])
-    temp_min = round(data['main']['temp_min'])
-    temp_max = round(data['main']['temp_max'])
-    feels = round(data['main']['feels_like'])
-    cond = data['weather'][0]['description'].capitalize()
-    humidity = data['main']['humidity']
-    wind_speed = round(data['wind']['speed'])
-    wind_dir = direcao_vento(data['wind']['deg']) if 'deg' in data['wind'] else ""
-    rain = data.get('rain', {}).get('1h', 0)
+        now = datetime.utcnow()
+        last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
+        pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-    title = f"{city} – {temp}°C"
-    desc = (
-        f"Temperatura mínima: {temp_min}°C; "
-        f"Temperatura máxima: {temp_max}°C; "
-        f"Sensação térmica: {feels}°C; "
-        f"Condições: {cond}; "
-        f"Umidade: {humidity}%; "
-        f"Chuva: {rain} mm; "
-        f"Vento: {wind_speed} km/h; "
-        f"Direção do vento: {wind_dir}; "
-        f"Atualizado: {last_updated}"
-    )
+        temp = round(data['main']['temp'])
+        temp_min = round(data['main']['temp_min'])
+        temp_max = round(data['main']['temp_max'])
+        feels_like = round(data['main']['feels_like'])
+        humidity = data['main']['humidity']
+        rain = data.get('rain', {}).get('1h', 0)
+        wind_speed = round(data['wind']['speed'])
+        wind_deg = data['wind'].get('deg', 0)
+        wind_dir = direcao_vento(wind_deg)
+        condicao = data['weather'][0]['description'].capitalize()
 
-    items.append(f"""
+        title = f"{city} – {temp}°C"
+        description = (
+            f"Temperatura mínima: {temp_min}°C; "
+            f"Temperatura máxima: {temp_max}°C; "
+            f"Sensação térmica: {feels_like}°C; "
+            f"Condições: {condicao}; "
+            f"Umidade: {humidity}%; "
+            f"Chuva: {rain} mm; "
+            f"Vento: {wind_speed} km/h ({wind_dir}); "
+            f"Atualizado: {last_updated}"
+        )
+
+        items.append(f"""
         <item>
             <title>{escape(title)}</title>
-            <description>{escape(desc)}</description>
+            <description>{escape(description)}</description>
             <pubDate>{pub_date}</pubDate>
         </item>
-    """)
+        """)
 
-rss = f"""
-<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
+    rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
+    <rss version="2.0">
     <channel>
-        <title>Previsão do Tempo – Extremo Sul da Bahia</title>
-        <link>https://openweathermap.org</link>
-        <description>Clima atualizado para 6 cidades da Bahia</description>
+        <title>Previsão do Tempo</title>
+        <link>https://rss-clima.onrender.com/clima</link>
+        <description>Feed RSS com o clima de várias cidades</description>
         {''.join(items)}
     </channel>
-</rss>
-"""
+    </rss>
+    """
 
-return Response(content=rss, media_type="application/rss+xml")
+    return Response(content=rss, media_type="application/xml")
