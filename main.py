@@ -1,60 +1,48 @@
 from fastapi import FastAPI, Response
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.sax.saxutils import escape
 
 app = FastAPI()
 
 API_KEY = "2e8ac43f3a1290868e551e0cffadf135"
-
 CITIES = [
     ("Itamaraju", -17.0401, -39.5389),
     ("Prado", -17.3366, -39.2226),
     ("Teixeira de Freitas", -17.5399, -39.7422),
     ("Alcobaça", -17.5194, -39.2036),
     ("Itabela", -16.5732, -39.5593),
-    ("Itabatã", -18.0001, -39.8489)
+    ("Itabatã", -18.0001, -39.8489),
 ]
-
-WEATHER_TRANSLATIONS = {
-    "clear sky": "Céu limpo",
-    "few clouds": "Poucas nuvens",
-    "scattered clouds": "Nuvens dispersas",
-    "broken clouds": "Nuvens quebradas",
-    "shower rain": "Chuva leve",
-    "rain": "Chuva",
-    "thunderstorm": "Trovoadas",
-    "snow": "Neve",
-    "mist": "Névoa",
-    "overcast clouds": "Nublado",
-    "light rain": "Chuva fraca",
-    "moderate rain": "Chuva moderada",
-    "heavy intensity rain": "Chuva forte"
-}
 
 @app.get("/clima/")
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
-        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}"
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         r = requests.get(url)
         if r.status_code != 200:
             continue
 
         data = r.json()
-        now = datetime.now()
+        now = datetime.utcnow() - timedelta(hours=3)  # Ajuste para horário de Brasília
         last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
         pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-        temp_c = round(data['main']['temp'] - 273.15)
-        desc_en = data['weather'][0]['description']
-        desc_pt = WEATHER_TRANSLATIONS.get(desc_en.lower(), desc_en)
+        temp = round(data["main"]["temp"])
+        humidity = data["main"]["humidity"]
+        wind = round(data["wind"]["speed"])
+        weather = data["weather"][0]["description"].capitalize()
+        rain = data.get("rain", {}).get("1h", 0)
 
-        title = f"{city} – {temp_c}°C – {desc_pt}"
+        title = f"{city} – {temp}°C – {weather}"
         desc = (
-            f"Umidade: {data['main']['humidity']}%<br>"
-            f"Vento: {round(data['wind']['speed'])} km/h<br>"
-            f"Last Updated: {last_updated}"
+            f"Temperatura: {temp}°C<br>"
+            f"Umidade: {humidity}%<br>"
+            f"Vento: {wind} km/h<br>"
+            f"Chuva: {rain} mm<br>"
+            f"Condições: {weather}<br>"
+            f"Atualizado: {last_updated}"
         )
 
         items.append(f"""
@@ -68,9 +56,9 @@ def clima_rss():
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
     <rss version="2.0">
     <channel>
-        <title>Previsão do Tempo – Extremo Sul da Bahia</title>
+        <title>Clima – Extremo Sul da Bahia</title>
         <link>https://openweathermap.org/</link>
-        <description>Clima atualizado para 6 cidades da Bahia</description>
+        <description>Boletim meteorológico atualizado</description>
         {''.join(items)}
     </channel>
     </rss>
