@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 import requests
 from datetime import datetime
-import pytz
 from xml.sax.saxutils import escape
 
 app = FastAPI()
