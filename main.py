@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import Response
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from xml.sax.saxutils import escape
 
 app = FastAPI()
@@ -33,13 +33,12 @@ def wind_direction_8(deg):
         return ""
 
 def brasilia_now():
-    tz = pytz.timezone("America/Sao_Paulo")
+    tz = timezone(timedelta(hours=-3))
     return datetime.now(tz)
 
 @app.get("/clima")
 def clima_rss():
     now = brasilia_now()
-    # pubDate padrão para RSS (com offset -0300)
     pub_date = now.strftime("%a, %d %b %Y %H:%M:%S %z")
     updated_str = now.strftime("%d/%m/%Y %H:%M:%S")
 
@@ -96,5 +95,4 @@ def clima_rss():
   </channel>
 </rss>
 """
-
     return Response(content=rss, media_type="application/xml")
