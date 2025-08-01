@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Response import requests from datetime import datetime from xml.sax.saxutils import escape
+from fastapi import FastAPI, Response 
+import requests 
+from datetime import datetime 
 
 app = FastAPI()
 
