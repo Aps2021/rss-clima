@@ -8,7 +8,6 @@ app = FastAPI()
 
 API_KEY = "1c115bd918454725b52191344250208"  # Chave da WeatherAPI
 
-# Cidades (nome, latitude, longitude)
 CITIES = [
     ("Itamaraju", -17.0404, -39.5389),
     ("Prado", -17.3366, -39.2226),
@@ -43,14 +42,15 @@ def clima_rss():
     items_xml = []
     for city, lat, lon in CITIES:
         url = (
-            f"http://api.weatherapi.com/v1/current.json"
-            f"?key={API_KEY}&q={lat},{lon}&lang=pt"
+            f"http://api.weatherapi.com/v1/forecast.json"
+            f"?key={API_KEY}&q={lat},{lon}&days=1&lang=pt"
         )
         r = requests.get(url)
         if r.status_code != 200:
             continue
         data = r.json()
         current = data["current"]
+        forecast = data["forecast"]["forecastday"][0]["day"]
 
         temp = round(current["temp_c"])
         feels_like = round(current["feelslike_c"])
@@ -60,10 +60,16 @@ def clima_rss():
         wind_deg = current["wind_degree"]
         direction = wind_direction_8(wind_deg)
 
+        temp_min = round(forecast["mintemp_c"])
+        temp_max = round(forecast["maxtemp_c"])
+        rain = forecast.get("daily_chance_of_rain", 0)
+
         title = f"{city} – {temp}°C"
         description = (
+            f"Temp mínima: {temp_min}°C; Temp máxima: {temp_max}°C; "
             f"Sensação térmica: {feels_like}°C; Condições: {condition}; "
-            f"Umidade: {humidity}%; Vento: {wind_kph} km/h; Direção: {direction}; "
+            f"Umidade: {humidity}%; Volume de chuva: {rain}%; "
+            f"Vento: {wind_kph} km/h; Direção: {direction}; "
             f"Atualizado: {updated_str}"
         )
 
