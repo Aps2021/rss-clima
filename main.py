@@ -6,9 +6,9 @@ from xml.sax.saxutils import escape
 
 app = FastAPI()
 
-API_KEY = "2e8ac43f3a1290868e551e0cffadf135"  # <— substitua pela sua chave
+API_KEY = "1c115bd918454725b52191344250208"  # Chave da WeatherAPI
 
-# Cidades (Itamaraju deve vir primeiro para ser o sumário)
+# Cidades (nome, latitude, longitude)
 CITIES = [
     ("Itamaraju", -17.0404, -39.5389),
     ("Prado", -17.3366, -39.2226),
@@ -18,14 +18,12 @@ CITIES = [
     ("Itabatã", -18.0001, -39.8489)
 ]
 
-# Mapeamento simplificado das 8 direções principais
 DIRECTIONS_8 = [
     "Norte", "Nordeste", "Leste", "Sudeste",
     "Sul", "Sudoeste", "Oeste", "Noroeste"
 ]
 
 def wind_direction_8(deg):
-    """Converte grau em uma das 8 direções principais (português)."""
     try:
         idx = int((deg + 22.5) / 45) % 8
         return DIRECTIONS_8[idx]
@@ -45,32 +43,27 @@ def clima_rss():
     items_xml = []
     for city, lat, lon in CITIES:
         url = (
-            f"https://api.openweathermap.org/data/2.5/weather"
-            f"?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
+            f"http://api.weatherapi.com/v1/current.json"
+            f"?key={API_KEY}&q={lat},{lon}&lang=pt"
         )
         r = requests.get(url)
         if r.status_code != 200:
             continue
         data = r.json()
+        current = data["current"]
 
-        temp = round(data["main"]["temp"])
-        temp_min = round(data["main"]["temp_min"])
-        temp_max = round(data["main"]["temp_max"])
-        feels_like = round(data["main"]["feels_like"])
-        humidity = data["main"]["humidity"]
-        rain = data.get("rain", {}).get("1h", 0)
-        wind_speed_ms = data["wind"].get("speed", 0)
-        wind_speed_kmh = round(wind_speed_ms * 3.6)
-        wind_deg = data["wind"].get("deg", 0)
+        temp = round(current["temp_c"])
+        feels_like = round(current["feelslike_c"])
+        condition = current["condition"]["text"]
+        humidity = current["humidity"]
+        wind_kph = current["wind_kph"]
+        wind_deg = current["wind_degree"]
         direction = wind_direction_8(wind_deg)
-        condition = data["weather"][0]["description"].capitalize()
 
         title = f"{city} – {temp}°C"
         description = (
-            f"Temp mínima: {temp_min}°C; Temp máxima: {temp_max}°C; "
             f"Sensação térmica: {feels_like}°C; Condições: {condition}; "
-            f"Umidade: {humidity}%; Volume de chuva: {rain} mm; "
-            f"Vento: {wind_speed_kmh} km/h; Direção: {direction}; "
+            f"Umidade: {humidity}%; Vento: {wind_kph} km/h; Direção: {direction}; "
             f"Atualizado: {updated_str}"
         )
 
