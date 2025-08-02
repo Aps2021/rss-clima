@@ -18,3 +18,5 @@ Após publicar no Render, o feed estará disponível em:
 ```
 https://rss-clima.onrender.com/clima/
 ```
+```
+https://rss-clima.onrender.com/news/
