@@ -16,14 +16,13 @@ CITIES = [
     ("Itabela", -16.5732, -39.5593),
     ("Itabatã", -18.0001, -39.8489),
     ("Nova Viçosa", -17.8919, -39.3719),
-    ("Mucuri", -18.0965, -39.5569)
+    ("Mucuri", -18.0965, -39.5569),
 ]
 
 @app.get("/clima/")
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
-        # URL corrigida e validada
         url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
@@ -42,7 +41,7 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Correção do índice da previsão do tempo [0]
+            # CORREÇÃO AQUI: Adicionado o [0] para ler a lista do weather corretamente
             desc_clima = "Disponível"
             if data.get('weather') and len(data['weather']) > 0:
                 desc_clima = data['weather'][0]['description'].capitalize()
