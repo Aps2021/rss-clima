@@ -29,7 +29,7 @@ def clima_rss():
     
     for city, lat, lon in CITIES:
         # Chamada para a rota /forecast que contém todas as variações e extremos do dia inteiro
-        url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
+        url = url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
             r = requests.get(url, timeout=5)
