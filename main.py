@@ -68,13 +68,13 @@ def clima_rss():
             vento_graus = round(data['wind']['deg']) if data.get('wind') and 'deg' in data['wind'] else 0
             vento_direcao_texto = graus_para_cardeal(vento_graus)
 
-            title = f"{city} – {temp_atual}°C – {desc_clima}"
+            title = f"{city} – {desc_clima}"
             
             # ESTRUTURA ATUALIZADA: Direção do Vento inserida antes da Velocidade, separada por "; "
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
                 f"Umidade: {umidade_atual}%; "
-                f"Vento: {vento_velocidade} km/h; "
+                f"Vento: {vento_velocidade} km/h - "
                 f"{vento_direcao_texto}; "
                 f"Última atualização: {last_updated}"
             )
