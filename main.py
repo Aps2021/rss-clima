@@ -21,14 +21,15 @@ CITIES = [
     ("Mucuri", -18.0965, -39.5569),
 ]
 
-@app.get("/clima/")
+# ALTERAÇÃO DETECTORA DE CACHE: Mudamos o endpoint para /previsao/ 
+# Isso obriga o Render a compilar o arquivo novo do zero
+@app.get("/previsao/")
 def clima_rss():
     items = []
-    # Captura a data de hoje no formato exigido pela API (AAAA-MM-DD)
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     for city, lat, lon in CITIES:
-        # Rota /forecast para buscar os extremos exatos e reais do dia inteiro
+        # Rota de previsão oficial /forecast que entrega os extremos exatos reais do dia
         url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
@@ -47,13 +48,13 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Filtra os blocos de previsão de 3h pertencentes ao dia de hoje
+            # Separa os blocos de previsão do dia de hoje
             today_forecasts = [f for f in data.get('list', []) if f.get('dt_txt', '').startswith(today_str)]
             
             if not today_forecasts:
                 today_forecasts = data.get('list', [])[:8]
 
-            # O primeiro bloco representa o tempo atual mais próximo
+            # Coleta os dados do momento (Primeiro bloco indexado)
             current_block = today_forecasts[0]
             temp_atual = round(current_block['main']['temp'])
             umidade_atual = current_block['main']['humidity']
@@ -63,7 +64,7 @@ def clima_rss():
             if current_block.get('weather') and len(current_block['weather']) > 0:
                 desc_clima = current_block['weather'][0]['description'].capitalize()
 
-            # EXATIDÃO MATEMÁTICA: Busca as máximas e mínimas reais do dia nos blocos da API
+            # EXATIDÃO REAL DA API: Filtra os menores e maiores valores reais registrados nas tabelas
             all_temps = [f['main']['temp'] for f in today_forecasts]
             temp_min = round(min(all_temps))
             temp_max = round(max(all_temps))
@@ -88,7 +89,7 @@ def clima_rss():
 </item>""")
 
         except Exception as e:
-            print(f"Erro no processamento de {city}: {e}")
+            print(f"Erro real no processamento de {city}: {e}")
             
         time.sleep(0.4)
 
@@ -101,5 +102,3 @@ def clima_rss():
   {''.join(items)}
 </channel>
 </rss>"""
-    
-    return Response(content=rss, media_type="text/xml")
