@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Response
 import requests
+from zoneinfo import ZoneInfo
 from datetime import datetime
 from xml.sax.saxutils import escape
 import time
@@ -40,7 +41,7 @@ def clima_rss():
                 continue
                 
             data = r.json()
-            now = datetime.now()
+            now = datetime.now(ZoneInfo("America/Bahia"))
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
