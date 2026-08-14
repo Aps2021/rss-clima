@@ -8,9 +8,11 @@ Este projeto gera um feed RSS com a previsão atual do tempo para 6 cidades da B
 - Prado
 - Teixeira de Freitas
 - Alcobaça
+- Caravelas
 - Itabela
 - Itabatã
-
+- Mucuri
+- Nova Viçosa
 ## Endereço do Feed
 
 Após publicar no Render, o feed estará disponível em:
