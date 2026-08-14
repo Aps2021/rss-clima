@@ -66,7 +66,7 @@ def clima_rss():
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
                 f"Umidade Atual: {umidade_atual}%; "
                 f"Vento: {vento_velocidade} km/h; "
-                f"Direção Vento: {vento_direcao}; "
+                f"Direção Vento: {vento_direcao}º; "
                 f"Last Updated: {last_updated}"
             )
 
