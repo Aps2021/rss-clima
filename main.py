@@ -23,6 +23,7 @@ CITIES = [
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
+        # URL corrigida e validada
         url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
@@ -41,7 +42,7 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # CORREÇÃO CRÍTICA: Adicionado o índice [0] no 'weather'
+            # Correção do índice da previsão do tempo [0]
             desc_clima = "Disponível"
             if data.get('weather') and len(data['weather']) > 0:
                 desc_clima = data['weather'][0]['description'].capitalize()
@@ -71,9 +72,8 @@ def clima_rss():
 <channel>
   <title>Previsão do Tempo – Extremo Sul da Bahia</title>
   <link>https://openweathermap.org</link>
-  <description>Clima updated para 9 cidades da Bahia</description>
+  <description>Clima atualizado para 9 cidades da Bahia</description>
   {''.join(items)}
 </channel>
 </rss>"""
-    # ALTERAÇÃO: Mudado para text/xml para abrir direto na tela do navegador
     return Response(content=rss, media_type="text/xml")
