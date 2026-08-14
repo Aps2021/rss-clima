@@ -61,9 +61,9 @@ def clima_rss():
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
             desc = (
-                f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C);"
-                f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%);"
-                f"Vento: {round(data['wind']['speed'])} km/h;"
+                f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
+                f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%); "
+                f"Vento: {round(data['wind']['speed'])} km/h; "
                 f"Last Updated: {last_updated}"
             )
 
