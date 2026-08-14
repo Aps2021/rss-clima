@@ -5,7 +5,7 @@ from xml.sax.saxutils import escape
 
 app = FastAPI()
 
-API_KEY = "INSIRA_SUA_CHAVE_AQUI"
+API_KEY = "2e8ac43f3a1290868e551e0cffadf13"
 CITIES = [
     ("Itamaraju", -17.0401, -39.5389),
     ("Prado", -17.3366, -39.2226),
