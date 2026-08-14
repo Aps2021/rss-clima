@@ -2,9 +2,6 @@ from fastapi import FastAPI, Response
 import requests
 from datetime import datetime
 from xml.sax.saxutils import escape
-import time
-import os
-import uvicorn
 
 app = FastAPI()
 
@@ -19,66 +16,33 @@ CITIES = [
     ("Itabatã", -18.0001, -39.8489),
     ("Nova Viçosa", -17.8919, -39.3719),
     ("Mucuri", -18.0965, -39.5569),
-]
 
 @app.get("/clima/")
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
-        
-        try:
-            r = requests.get(url, timeout=5)
-            
-            # Se a API gratuita bloquear por velocidade, espera um instante e tenta novamente
-            if r.status_code == 429:
-                time.sleep(0.5)
-                r = requests.get(url, timeout=5)
-                
-            if r.status_code != 200:
-                print(f"Erro na API para {city}: Status {r.status_code}")
-                continue
-                
-            data = r.json()
-            now = datetime.now()
-            last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
-            pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        r = requests.get(url)
+        if r.status_code != 200:
+            continue
+        data = r.json()
+        now = datetime.now()
+        last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
+        pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Coleta segura da descrição do tempo usando o índice [0]
-            desc_clima = "Disponível"
-            if data.get('weather') and len(data['weather']) > 0:
-                desc_clima = data['weather'][0]['description'].capitalize()
+        title = f"{city} – {round(data['main']['temp'])}°C – {data['weather'][0]['description'].capitalize()}"
+        desc = (
+            f"Umidade: {data['main']['humidity']}%<br>"
+            f"Vento: {round(data['wind']['speed'])} km/h<br>"
+            f"Last Updated: {last_updated}"
+        )
 
-            # Extração de temperatura atual e as variações oficiais
-            temp_atual = round(data['main']['temp'])
-            temp_min = round(data['main']['temp_min'])
-            temp_max = round(data['main']['temp_max'])
-            
-            # Extração da umidade atual e geração matemática das umidades máximas e mínimas para o Myriad
-            umidade_atual = data['main']['humidity']
-            umidade_min = max(0, umidade_atual - 7)
-            umidade_max = min(100, umidade_atual + 6)
-
-            title = f"{city} – {temp_atual}°C – {desc_clima}"
-            desc = (
-                f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
-                f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%); "
-                f"Vento: {round(data['wind']['speed'])} km/h; "
-                f"Last Updated: {last_updated}"
-            )
-
-            items.append(f"""
+        items.append(f"""
 <item>
   <title>{escape(title)}</title>
   <description>{escape(desc)}</description>
   <pubDate>{pub_date}</pubDate>
 </item>""")
-
-        except Exception as e:
-            print(f"Erro inesperado no processamento de {city}: {e}")
-            
-        # Pausa de controle obrigatória para evitar bloqueios por segundo da API
-        time.sleep(0.3)
 
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
@@ -89,6 +53,4 @@ def clima_rss():
   {''.join(items)}
 </channel>
 </rss>"""
-    
-    # Retorna como text/xml para abrir formatado diretamente na tela de qualquer navegador
-    return Response(content=rss, media_type="text/xml")
+    return Response(content=rss, media_type="application/rss+xml")
