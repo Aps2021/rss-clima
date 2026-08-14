@@ -24,7 +24,7 @@ CITIES = [
 
 def graus_para_cardeal(graus: int) -> str:
     """Converte a direção do vento de graus para pontos cardeais conforme wind.direction.code."""
-    direcoes = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    direcoes = ["Norte", "Nordeste", "Leste", "Sudeste", "Sul", "Sudoeste", "Oeste", "Noroeste"]
     index = int((graus + 22.5) / 45) % 8
     return direcoes[index]
 
