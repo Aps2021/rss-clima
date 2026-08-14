@@ -21,23 +21,22 @@ CITIES = [
     ("Mucuri", -18.0965, -39.5569),
 ]
 
-# ALTERAÇÃO DETECTORA DE CACHE: Mudamos o endpoint para /previsao/ 
-# Isso obriga o Render a compilar o arquivo novo do zero
-@app.get("/previsao/")
+@app.get("/clima/")
 def clima_rss():
     items = []
+    # Identifica o dia de hoje no formato de texto da API (AAAA-MM-DD)
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     for city, lat, lon in CITIES:
-        # Rota de previsão oficial /forecast que entrega os extremos exatos reais do dia
+        # Chamada para a rota /forecast que contém todas as variações e extremos do dia inteiro
         url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
-            r = requests.get(url, timeout=6)
+            r = requests.get(url, timeout=5)
             
             if r.status_code == 429:
-                time.sleep(1.0)
-                r = requests.get(url, timeout=6)
+                time.sleep(0.5)
+                r = requests.get(url, timeout=5)
                 
             if r.status_code != 200:
                 print(f"Erro na API para {city}: Status {r.status_code}")
@@ -48,27 +47,28 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Separa os blocos de previsão do dia de hoje
+            # Filtra os blocos de previsão de 3h pertencentes ao dia de hoje
             today_forecasts = [f for f in data.get('list', []) if f.get('dt_txt', '').startswith(today_str)]
             
+            # Margem de segurança caso acesse à noite e restem poucos blocos de hoje
             if not today_forecasts:
                 today_forecasts = data.get('list', [])[:8]
 
-            # Coleta os dados do momento (Primeiro bloco indexado)
+            # O primeiro bloco representa as condições do período atual
             current_block = today_forecasts[0]
             temp_atual = round(current_block['main']['temp'])
             umidade_atual = current_block['main']['humidity']
-            vento = round(current_block['wind']['speed'])
             
             desc_clima = "Disponível"
             if current_block.get('weather') and len(current_block['weather']) > 0:
                 desc_clima = current_block['weather'][0]['description'].capitalize()
 
-            # EXATIDÃO REAL DA API: Filtra os menores e maiores valores reais registrados nas tabelas
+            # EXTRAÇÃO REAL DA API: Descobre matematicamente a mínima e máxima reais do dia nos blocos
             all_temps = [f['main']['temp'] for f in today_forecasts]
             temp_min = round(min(all_temps))
             temp_max = round(max(all_temps))
 
+            # EXTRAÇÃO REAL DA API: Descobre matematicamente a umidade mínima e máxima reais do dia nos blocos
             all_humidities = [f['main']['humidity'] for f in today_forecasts]
             umidade_min = min(all_humidities)
             umidade_max = max(all_humidities)
@@ -77,7 +77,7 @@ def clima_rss():
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
                 f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%); "
-                f"Vento: {vento} km/h; "
+                f"Vento: {round(current_block['wind']['speed'])} km/h; "
                 f"Last Updated: {last_updated}"
             )
 
@@ -89,7 +89,7 @@ def clima_rss():
 </item>""")
 
         except Exception as e:
-            print(f"Erro real no processamento de {city}: {e}")
+            print(f"Erro inesperado no processamento de {city}: {e}")
             
         time.sleep(0.4)
 
@@ -97,8 +97,10 @@ def clima_rss():
 <rss version="2.0">
 <channel>
   <title>Previsão do Tempo – Extremo Sul da Bahia</title>
-  <link>https://openweathermap.org</link>
+  <link>https://openweathermap.org/</link>
   <description>Clima atualizado para 9 cidades da Bahia</description>
   {''.join(items)}
 </channel>
 </rss>"""
+    
+    return Response(content=rss, media_type="text/xml")
