@@ -21,6 +21,11 @@ CITIES = [
     ("Nova Viçosa", -17.8919, -39.3719),
     ("Mucuri", -18.0965, -39.5569),
 ]
+def graus_para_cardeal(graus: int) -> str:
+    """Converte a direção do vento de graus para pontos cardeais."""
+    direcoes = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    index = int((graus + 22.5) / 45) % 8
+    return direcoes[index]
 
 @app.get("/clima/")
 def clima_rss():
