@@ -3,6 +3,8 @@ import requests
 from datetime import datetime
 from xml.sax.saxutils import escape
 import time
+import os
+import uvicorn
 
 app = FastAPI()
 
@@ -23,12 +25,12 @@ CITIES = [
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
-        # URL FIXADA: Endereço completo oficial com a rota /data/2.5/weather e o ?lat=
-        url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
             r = requests.get(url, timeout=5)
             
+            # Se a API gratuita bloquear por velocidade, espera um instante e tenta novamente
             if r.status_code == 429:
                 time.sleep(0.5)
                 r = requests.get(url, timeout=5)
@@ -42,26 +44,25 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Leitura correta da lista do weather com [0]
+            # Coleta segura da descrição do tempo usando o índice [0]
             desc_clima = "Disponível"
             if data.get('weather') and len(data['weather']) > 0:
                 desc_clima = data['weather'][0]['description'].capitalize()
 
-            # Extração das variáveis numéricas coletadas da resposta
+            # Extração de temperatura atual e as variações oficiais
             temp_atual = round(data['main']['temp'])
             temp_min = round(data['main']['temp_min'])
             temp_max = round(data['main']['temp_max'])
-            umidade_atual = data['main']['humidity']
             
-            # Cálculo seguro para gerar a variação de umidade mínima e máxima do dia
+            # Extração da umidade atual e geração matemática das umidades máximas e mínimas para o Myriad
+            umidade_atual = data['main']['humidity']
             umidade_min = max(0, umidade_atual - 7)
             umidade_max = min(100, umidade_atual + 6)
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
-            
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C)<br>"
-                f"Umidade: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%)<br>"
+                f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%)<br>"
                 f"Vento: {round(data['wind']['speed'])} km/h<br>"
                 f"Last Updated: {last_updated}"
             )
@@ -74,18 +75,20 @@ def clima_rss():
 </item>""")
 
         except Exception as e:
-            print(f"Erro de processamento na cidade {city}: {e}")
+            print(f"Erro inesperado no processamento de {city}: {e}")
             
-        # Pausa obrigatória para a API processar as 9 cidades sem bloquear por velocidade
+        # Pausa de controle obrigatória para evitar bloqueios por segundo da API
         time.sleep(0.3)
 
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
 <channel>
   <title>Previsão do Tempo – Extremo Sul da Bahia</title>
-  <link>https://openweathermap.org</link>
+  <link>https://openweathermap.org/</link>
   <description>Clima atualizado para 9 cidades da Bahia</description>
   {''.join(items)}
 </channel>
 </rss>"""
+    
+    # Retorna como text/xml para abrir formatado diretamente na tela de qualquer navegador
     return Response(content=rss, media_type="text/xml")
