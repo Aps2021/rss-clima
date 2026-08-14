@@ -50,14 +50,14 @@ def clima_rss():
                 desc_clima = data['weather'][0]['description'].capitalize()
 
             # Extração de temperatura atual e as variações oficiais
-            temp_atual = round(data['main']['temp'])
-            temp_min = round(data['main']['temp_min'])
-            temp_max = round(data['main']['temp_max'])
+            all_temps = [f['main']['temp']
+            temp_min = round(min(all_temps))
+            temp_max = round(max(all_temps))
             
             # Extração da umidade atual e geração matemática das umidades máximas e mínimas para o Myriad
-            umidade_atual = data['main']['humidity']
-            umidade_min = max(0, umidade_atual - 7)
-            umidade_max = min(100, umidade_atual + 6)
+            all_humidities = [f['main']['humidity']
+            umidade_min = min(all_humidities)
+            umidade_max = max(all_humidities)
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
             desc = (
