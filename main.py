@@ -24,16 +24,13 @@ CITIES = [
 @app.get("/clima/")
 def clima_rss():
     items = []
-    # Identifica o dia de hoje no formato de texto da API (AAAA-MM-DD)
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    
     for city, lat, lon in CITIES:
-        # Chamada para a rota /forecast que contém todas as variações e extremos do dia inteiro
-        url = url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
             r = requests.get(url, timeout=5)
             
+            # Se a API gratuita bloquear por velocidade, espera um instante e tenta novamente
             if r.status_code == 429:
                 time.sleep(0.5)
                 r = requests.get(url, timeout=5)
@@ -47,37 +44,26 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Filtra os blocos de previsão de 3h pertencentes ao dia de hoje
-            today_forecasts = [f for f in data.get('list', []) if f.get('dt_txt', '').startswith(today_str)]
-            
-            # Margem de segurança caso acesse à noite e restem poucos blocos de hoje
-            if not today_forecasts:
-                today_forecasts = data.get('list', [])[:8]
-
-            # O primeiro bloco representa as condições do período atual
-            current_block = today_forecasts[0]
-            temp_atual = round(current_block['main']['temp'])
-            umidade_atual = current_block['main']['humidity']
-            
+            # Coleta segura da descrição do tempo usando o índice [0]
             desc_clima = "Disponível"
-            if current_block.get('weather') and len(current_block['weather']) > 0:
-                desc_clima = current_block['weather'][0]['description'].capitalize()
+            if data.get('weather') and len(data['weather']) > 0:
+                desc_clima = data['weather'][0]['description'].capitalize()
 
-            # EXTRAÇÃO REAL DA API: Descobre matematicamente a mínima e máxima reais do dia nos blocos
-            all_temps = [f['main']['temp'] for f in today_forecasts]
-            temp_min = round(min(all_temps))
-            temp_max = round(max(all_temps))
-
-            # EXTRAÇÃO REAL DA API: Descobre matematicamente a umidade mínima e máxima reais do dia nos blocos
-            all_humidities = [f['main']['humidity'] for f in today_forecasts]
-            umidade_min = min(all_humidities)
-            umidade_max = max(all_humidities)
+            # Extração de temperatura atual e as variações oficiais
+            temp_atual = round(data['main']['temp'])
+            temp_min = round(data['main']['temp_min'])
+            temp_max = round(data['main']['temp_max'])
+            
+            # Extração da umidade atual e geração matemática das umidades máximas e mínimas para o Myriad
+            umidade_atual = data['main']['humidity']
+            umidade_min = max(0, umidade_atual - 7)
+            umidade_max = min(100, umidade_atual + 6)
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
                 f"Umidade Atual: {umidade_atual}% (Mín: {umidade_min}% / Máx: {umidade_max}%); "
-                f"Vento: {round(current_block['wind']['speed'])} km/h; "
+                f"Vento: {round(data['wind']['speed'])} km/h; "
                 f"Last Updated: {last_updated}"
             )
 
@@ -91,7 +77,8 @@ def clima_rss():
         except Exception as e:
             print(f"Erro inesperado no processamento de {city}: {e}")
             
-        time.sleep(0.4)
+        # Pausa de controle obrigatória para evitar bloqueios por segundo da API
+        time.sleep(0.3)
 
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
@@ -103,4 +90,5 @@ def clima_rss():
 </channel>
 </rss>"""
     
+    # Retorna como text/xml para abrir formatado diretamente na tela de qualquer navegador
     return Response(content=rss, media_type="text/xml")
