@@ -2,7 +2,6 @@ from fastapi import FastAPI, Response
 import requests
 from datetime import datetime
 from xml.sax.saxutils import escape
-import time
 
 app = FastAPI()
 
@@ -22,49 +21,43 @@ CITIES = [
 @app.get("/clima/")
 def clima_rss():
     items = []
+    now = datetime.now()
+    last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
+    pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
     for city, lat, lon in CITIES:
         url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
-            r = requests.get(url, timeout=5)
+            r = requests.get(url, timeout=4)
             
-            if r.status_code == 429:
-                time.sleep(0.5)
-                r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                temp = round(data["main"]["temp"])
                 
-            if r.status_code != 200:
-                print(f"Erro na API para {city}: Status {r.status_code}")
-                continue
+                # Leitura simplificada e direta da descrição do tempo
+                condicao = "Disponível"
+                if "weather" in data and len(data["weather"]) > 0:
+                    condicao = data["weather"][0]["description"].capitalize()
                 
-            data = r.json()
-            now = datetime.now()
-            last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
-            pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-
-            # CORREÇÃO AQUI: Adicionado o [0] para ler a lista do weather corretamente
-            desc_clima = "Disponível"
-            if data.get('weather') and len(data['weather']) > 0:
-                desc_clima = data['weather'][0]['description'].capitalize()
-
-            title = f"{city} – {round(data['main']['temp'])}°C – {desc_clima}"
-            
-            desc = (
-                f"Umidade: {data['main']['humidity']}%<br>"
-                f"Vento: {round(data['wind']['speed'])} km/h<br>"
-                f"Last Updated: {last_updated}"
-            )
-
-            items.append(f"""
-<item>
-  <title>{escape(title)}</title>
-  <description>{escape(desc)}</description>
-  <pubDate>{pub_date}</pubDate>
-</item>""")
+                title = f"{city} – {temp}°C – {condicao}"
+                desc = f"Umidade: {data['main']['humidity']}% | Vento: {round(data['wind']['speed'])} km/h"
+            else:
+                # Se a API rejeitar, exibe a cidade com aviso em vez de sumir com ela
+                title = f"{city} – Dados Indisponíveis"
+                desc = f"Erro na API externa (Status {r.status_code}). Atualizado em: {last_updated}"
 
         except Exception as e:
-            print(f"Erro de processamento na cidade {city}: {e}")
-            
-        time.sleep(0.3)
+            title = f"{city} – Erro de Conexão"
+            desc = f"Não foi possível conectar à API de clima: {str(e)}"
+
+        # Garante a inserção do item no XML de qualquer forma
+        items.append(f"""
+<item>
+  <title>{escape(title)}</title>
+  <description>{escape(desc)} | Atualizado: {last_updated}</description>
+  <pubDate>{pub_date}</pubDate>
+</item>""")
 
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
