@@ -13,6 +13,7 @@ Este projeto gera um feed RSS com a previsão atual do tempo para 9 cidades da B
 - Itabatã
 - Mucuri
 - Nova Viçosa
+
 ## Endereço do Feed
 
 Após publicar no Render, o feed estará disponível em:
