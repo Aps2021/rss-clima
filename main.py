@@ -21,16 +21,22 @@ CITIES = [
     ("Mucuri", -18.0965, -39.5569),
 ]
 
+def graus_para_cardeal(graus: int) -> str:
+    """Converte a direção do vento de graus para pontos cardeais/colaterais."""
+    direcoes = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    # Divide os 360 graus da rosa dos ventos em 8 frentes de 45 graus cada
+    index = int((graus + 22.5) / 45) % 8
+    return direcoes[index]
+
 @app.get("/clima/")
 def clima_rss():
     items = []
     for city, lat, lon in CITIES:
-        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
+        url = f"https://openweathermap.org{lat}&lon={lon}&appid={API_KEY}&units=metric&lang=pt_br"
         
         try:
             r = requests.get(url, timeout=5)
             
-            # Se a API gratuita bloquear por velocidade, espera um instante e tenta novamente
             if r.status_code == 429:
                 time.sleep(0.5)
                 r = requests.get(url, timeout=5)
@@ -44,29 +50,28 @@ def clima_rss():
             last_updated = now.strftime("%d/%m/%Y %H:%M:%S")
             pub_date = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-            # Coleta segura da descrição do tempo usando o índice [0]
             desc_clima = "Disponível"
             if data.get('weather') and len(data['weather']) > 0:
                 desc_clima = data['weather'][0]['description'].capitalize()
 
-            # CORREÇÃO CRÍTICA: Acesso correto aos dicionários do Python usando colchetes separados
             temp_atual = round(data['main']['temp'])
             temp_min = round(data['main']['temp_min'])
             temp_max = round(data['main']['temp_max'])
-            
-            # Extração correta da umidade atual da API
             umidade_atual = data['main']['humidity']
 
-            # Extração correta dos dados de vento da API
+            # Extração correta dos dados de vento
             vento_velocidade = round(data['wind']['speed']) if data.get('wind') and 'speed' in data['wind'] else 0
-            vento_direcao = round(data['wind']['deg']) if data.get('wind') and 'deg' in data['wind'] else 0
+            vento_graus = round(data['wind']['deg']) if data.get('wind') and 'deg' in data['wind'] else 0
+            
+            # CONVERSÃO: Transforma os graus (ex: 90°) em sigla (ex: E)
+            vento_direcao = graus_para_cardeal(vento_graus)
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
                 f"Umidade Atual: {umidade_atual}%; "
                 f"Vento: {vento_velocidade} km/h; "
-                f"Vento Direção: {vento_direcao}°; "
+                f"Vento Direção: {vento_direcao}; "  # Agora exibe ex: N, SE, SO...
                 f"Last Updated: {last_updated}"
             )
 
@@ -78,21 +83,18 @@ def clima_rss():
 </item>""")
 
         except Exception as e:
-            # Mostra no painel do Render exatamente o que quebrou caso aconteça algo inesperado
             print(f"Erro inesperado no processamento de {city}: {e}")
             
-        # Pausa de controle obrigatória para evitar bloqueios por segundo da API
         time.sleep(0.3)
 
     rss = f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
 <channel>
   <title>Previsão do Tempo – Extremo Sul da Bahia</title>
-  <link>https://openweathermap.org/</link>
+  <link>https://openweathermap.org</link>
   <description>Clima atualizado para 9 cidades da Bahia</description>
   {''.join(items)}
 </channel>
 </rss>"""
     
-    # Retorna como text/xml para abrir formatado diretamente na tela de qualquer navegador
     return Response(content=rss, media_type="text/xml")
