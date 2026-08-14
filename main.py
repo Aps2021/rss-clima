@@ -49,20 +49,24 @@ def clima_rss():
             if data.get('weather') and len(data['weather']) > 0:
                 desc_clima = data['weather'][0]['description'].capitalize()
 
-            # Extração de temperatura atual e as variações oficiais
-            temp_atual = round(data['main.temp'])
-            temp_min = round(data['main.temp_min'])
-            temp_max = round(data['main.temp_max'])
+            # CORREÇÃO CRÍTICA: Acesso correto aos dicionários do Python usando colchetes separados
+            temp_atual = round(data['main']['temp'])
+            temp_min = round(data['main']['temp_min'])
+            temp_max = round(data['main']['temp_max'])
             
-            # Extração da umidade atual e geração matemática das umidades máximas e mínimas para o Myriad
-            umidade_atual = data['main.humidity']
+            # Extração correta da umidade atual da API
+            umidade_atual = data['main']['humidity']
+
+            # Extração correta dos dados de vento da API
+            vento_velocidade = round(data['wind']['speed']) if data.get('wind') and 'speed' in data['wind'] else 0
+            vento_direcao = round(data['wind']['deg']) if data.get('wind') and 'deg' in data['wind'] else 0
 
             title = f"{city} – {temp_atual}°C – {desc_clima}"
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
-                f"Umidade Atual: {umidade_atual}% ; "
-                f"Vento: {round(data['wind.speed'])} km/h; "
-                f"Vento Direção: {round(data['wind.deg'])}; "
+                f"Umidade Atual: {umidade_atual}%; "
+                f"Vento: {vento_velocidade} km/h; "
+                f"Vento Direção: {vento_direcao}°; "
                 f"Last Updated: {last_updated}"
             )
 
@@ -74,6 +78,7 @@ def clima_rss():
 </item>""")
 
         except Exception as e:
+            # Mostra no painel do Render exatamente o que quebrou caso aconteça algo inesperado
             print(f"Erro inesperado no processamento de {city}: {e}")
             
         # Pausa de controle obrigatória para evitar bloqueios por segundo da API
