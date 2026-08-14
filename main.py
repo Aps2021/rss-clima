@@ -73,9 +73,9 @@ def clima_rss():
             # ESTRUTURA ATUALIZADA: Direção do Vento inserida antes da Velocidade, separada por "; "
             desc = (
                 f"Temperatura: {temp_atual}°C (Mín: {temp_min}°C / Máx: {temp_max}°C); "
-                f"Humidade: {umidade_atual}%; "
-                f"Dir. Vento: {vento_direcao_texto}; "
+                f"Umidade: {umidade_atual}%; "
                 f"Vel. Vento: {vento_velocidade} km/h; "
+                f"Dir. Vento: {vento_direcao_texto}; "
                 f"Última atualização: {last_updated}"
             )
 
